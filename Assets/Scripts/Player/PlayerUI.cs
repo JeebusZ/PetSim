@@ -11,34 +11,18 @@ public class PlayerUI : MonoBehaviour
     public TextMeshProUGUI copperText;
     public TextMeshProUGUI SilverText;
     public TextMeshProUGUI goldText;
+    private PlayerInventory inventory;
 
     private void Start()
     {
-        copperText.text = "0";
-        SilverText.text = "0";
-        goldText.text = "0";
+        inventory = GetComponent<PlayerInventory>();
     }
 
-    public void UpdateCoinsUI(long amount, ResourceType resourceType)
+    public void UpdateCoinsUI()
     {
-        switch (resourceType)
-        {
-            case ResourceType.COPPER:
-                copperText.text = FormatNumber(amount);
-                break;
-            case ResourceType.SILVER:
-                SilverText.text = FormatNumber(amount);
-                break;
-            case ResourceType.GOLD:
-                goldText.text = FormatNumber(amount);
-                break;
-            case ResourceType.PLATINUM:
-                break;
-            case ResourceType.DIAMOND:
-                break;
-            default:
-                break;
-        }
+        copperText.text = FormatNumber(inventory._copper);
+        SilverText.text = FormatNumber(inventory._silver);
+        goldText.text = FormatNumber(inventory._gold);
     }
 
     public static string FormatNumber(long number)

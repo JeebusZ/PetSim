@@ -5,9 +5,14 @@ using UnityEngine;
 
 public class PlayerInventory : MonoBehaviour
 {
-    public long copper;
-    public long silver;
-    public long gold;
+    [SerializeField] private long copper;
+    [SerializeField] private long silver;
+    [SerializeField] private long gold;
+
+    public long _copper { get { return copper; } set { copper = value; } }
+    public long _silver { get { return silver; } set { silver = value; } }
+    public long _gold { get { return gold; } set { gold = value; } }
+
 
     private const long CopperToSilver = 10000;
     private const long SilverToGold = 1000;
@@ -15,19 +20,16 @@ public class PlayerInventory : MonoBehaviour
     public void AddCopper(long amount)
     {
         copper += amount;
-        GetComponent<PlayerUI>().UpdateCoinsUI(amount, ResourceType.COPPER);
         ConvertCurrency();
     }
     public void AddSilver(long amount)
     {
         silver += amount;
-        GetComponent<PlayerUI>().UpdateCoinsUI(amount, ResourceType.SILVER);
         ConvertCurrency();
     }
     public void AddGold(long amount)
     {
         gold += amount;
-        GetComponent<PlayerUI>().UpdateCoinsUI(amount, ResourceType.GOLD);
         ConvertCurrency();
     }
 
@@ -44,6 +46,7 @@ public class PlayerInventory : MonoBehaviour
             gold += silver / SilverToGold;
             silver %= SilverToGold;
         }
+        GetComponent<PlayerUI>().UpdateCoinsUI();
     }
 
     private void Update()
