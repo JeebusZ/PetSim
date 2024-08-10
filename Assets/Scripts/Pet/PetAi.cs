@@ -31,6 +31,8 @@ public class PetAi : MonoBehaviour
     private Animator anim;
     public Pet _pet { get { return pet; } set { pet = value; } }
     public List<Transform> ores { get {  return oresInRange; } set { oresInRange = value; } }
+    public PetState _currentState { get { return currentState; } set {  currentState = value; } }
+    public Transform _currentOre {  get { return currentOre; } set {  currentOre = value; } }
     
     private void Start()
     {
@@ -75,25 +77,39 @@ public class PetAi : MonoBehaviour
         //Check ores within range
         if (oresInRange.Count > 0)
         {
-            UpdateOreTarget();
             if(currentOre != null)
             {
                 currentState = PetState.MovingToOre;
+            }
+            else
+            {
+                UpdateOreTarget();
             }
         }
     }
     private void MoveToOre()
     {
-        Lootable lootable = currentOre.GetComponent<Lootable>();
-        //if(currentOre != null && !lootable.isOpen)
-        //{
-        //    int rand = Random.Range(0, oresInRange.Count);
-        //    currentOre = oresInRange[rand];
-        //}
+        // Check if the pet is too far from the player
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        if (distanceToPlayer > followRange)
+        {
+            currentOre = null;
+            currentState = PetState.FollowingPlayer;
+            return;
+        }
+
         if (currentOre != null)
         {
-            float distanceToOre = Vector3.Distance(transform.position, currentOre.position);
+            Lootable lootable = currentOre.GetComponent<Lootable>();
+            if (lootable == null || lootable._lootHealth <= 0)
+            {
+                // Ore was destroyed or has no health, find another ore
+                currentOre = null;
+                UpdateOreTarget();
+                return;
+            }
 
+            float distanceToOre = Vector3.Distance(transform.position, currentOre.position);
             agent.SetDestination(currentOre.position);
 
             if (distanceToOre <= orePrioritizationDistance)
@@ -108,50 +124,74 @@ public class PetAi : MonoBehaviour
     }
     private void InteractWithOre()
     {
-        if(currentOre != null)
+        // Check if the pet is too far from the player
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+        if (distanceToPlayer > followRange)
         {
-            float distanceToOre = Vector3.Distance(transform.position, currentOre.position);
-            //float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-            if(distanceToOre <= pickupDistance)
+            currentOre = null;
+            currentState = PetState.FollowingPlayer;
+            return;
+        }
+
+        if (currentOre != null)
+        {
+            Lootable lootable = currentOre.GetComponent<Lootable>();
+            if (lootable == null || lootable._lootHealth <= 0)
             {
-                //Perform damage to ore
-                if(!isInteracting)
+                // Ore was destroyed or has no health, find another ore
+                currentOre = null;
+                UpdateOreTarget();
+                return;
+            }
+
+            float distanceToOre = Vector3.Distance(transform.position, currentOre.position);
+            if (distanceToOre <= pickupDistance)
+            {
+                // Perform damage to ore
+                if (!isInteracting)
                 {
-                    StartCoroutine(InteractCooldown());
                     anim.SetTrigger("Attack");
                 }
             }
-            //else if(distanceToPlayer <= oreBreakDistance)
-            //{
-            //    isInteracting = false;
-            //    currentState = PetState.FollowingPlayer;
-            //}
+        }
+        else
+        {
+            currentState = PetState.FollowingPlayer;
         }
     }
     private IEnumerator InteractCooldown()
     {
-        if(currentOre.GetComponent<Lootable>()._lootHealth <= 0) 
+        isInteracting = true;
+
+        if (currentOre != null)
         {
-            if(currentOre != null)
+            Lootable lootable = currentOre.GetComponent<Lootable>();
+
+            if (lootable != null)
             {
-                oresInRange.Remove(currentOre);
+                lootable.TakeDamage((long)pet._power);
+
+                // Check if the ore is destroyed
+                if (lootable._lootHealth <= 0)
+                {
+                    oresInRange.Remove(currentOre);
+                    currentOre = null;
+                    UpdateOreTarget();
+                }
             }
-            isInteracting = false;
-            currentOre = null;
-            currentState = PetState.FollowingPlayer;
         }
-        else
+
+        yield return new WaitForSeconds(interactionCooldown);
+
+        isInteracting = false;
+        if (currentOre == null)
         {
-            isInteracting = true;
-            //Perfom damage
-            currentOre.GetComponent<Lootable>().TakeDamage((long)pet._power);
-
-            yield return new WaitForSeconds(interactionCooldown);
-
-            isInteracting = false;
-            currentOre = null;
-            currentState = PetState.FollowingPlayer;
+            UpdateOreTarget();
         }
+    }
+    public void Attack()
+    {
+        StartCoroutine(InteractCooldown());
     }
 
     private void OnTriggerEnter(Collider other)
@@ -180,25 +220,21 @@ public class PetAi : MonoBehaviour
 
     private void UpdateOreTarget()
     {
+        // Remove ores with no health from the list
+        oresInRange.RemoveAll(ore => ore == null || ore.GetComponent<Lootable>()._lootHealth <= 0);
+
         if (oresInRange.Count > 0)
         {
-            //Prio low health ores
-            Transform closestOre = null;
-            float minHealth = Mathf.Infinity;
-
-            foreach (Transform ore in oresInRange)
-            {
-                if (ore.GetComponent<Lootable>()._lootHealth < minHealth)
-                {
-                    minHealth = ore.GetComponent<Lootable>()._lootHealth;
-                    closestOre = ore;
-                }
-            }
-            currentOre = closestOre.transform;
+            // Randomly pick an ore from the remaining ones
+            int randomIndex = Random.Range(0, oresInRange.Count);
+            currentOre = oresInRange[randomIndex];
+            currentState = PetState.MovingToOre;
         }
         else
         {
+            // If no ores are available, return to following the player
             currentOre = null;
+            currentState = PetState.FollowingPlayer;
         }
     }
 }

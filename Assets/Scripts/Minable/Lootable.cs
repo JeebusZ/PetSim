@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using Unity.VisualScripting.Dependencies.Sqlite;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class Lootable : MonoBehaviour,IPooledObjects
 {
@@ -20,9 +21,6 @@ public class Lootable : MonoBehaviour,IPooledObjects
 
     [SerializeField] private LootableUI lootableUI;
     public OreSpawners spawners;
-    public bool isOpen = true;
-    public int petCounter;
-    public List<GameObject> pets = new List<GameObject>();
 
     public long _lootHealth { get { return lootHealth; }}
 
@@ -35,8 +33,6 @@ public class Lootable : MonoBehaviour,IPooledObjects
     {
         lootHealth = minable._health;
         lootBonus = minable._bonus;
-        isOpen = true;
-        petCounter = 0;
         lootableUI.SetupUI(lootHealth);
     }
 
@@ -49,15 +45,6 @@ public class Lootable : MonoBehaviour,IPooledObjects
                 spawners.spawnedOres -= 1;
             }
             gameObject.SetActive(false);
-        }
-
-        if(petCounter >= minable._maxPetForGathering)
-        {
-            isOpen = false;
-        }
-        else if(petCounter <= minable._maxPetForGathering)
-        {
-            isOpen = true;
         }
     }
 
