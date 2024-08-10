@@ -147,7 +147,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   value: 354
-  floatHeight: 0.15
+  floatHeight: 0.25
   floatDamping: 2
   magnetRange: 4
   magnetSpeed: 5
+  pickupDistance: 0.5

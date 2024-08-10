@@ -1,8 +1,9 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using Unity.VisualScripting;
+using Unity.VisualScripting.Dependencies.Sqlite;
 
 public enum PetState
 {
@@ -23,13 +24,14 @@ public class PetAi : MonoBehaviour
 
     [SerializeField] private Pet pet;
     private NavMeshAgent agent;
-    private PetState currentState;
-    private Transform currentOre;
-    [SerializeField] private List<Lootable> oresInRange = new List<Lootable>();
+    [SerializeField] private PetState currentState;
+    [SerializeField] private Transform currentOre;
+    [SerializeField] private List<Transform> oresInRange = new List<Transform>();
     private bool isInteracting = false;
-    private float interactionTimer = 0f;
+    private bool isNearPlayer = true;
 
     public Pet _pet { get { return pet; } set { pet = value; } }
+    public List<Transform> ores { get {  return oresInRange; } set { oresInRange = value; } }
     
     private void Start()
     {
@@ -43,12 +45,15 @@ public class PetAi : MonoBehaviour
         switch (currentState)
         {
             case PetState.FollowingPlayer:
+                agent.stoppingDistance = 3.7f;
                 FollowPlayer();
                 break;
             case PetState.MovingToOre:
+                agent.stoppingDistance = pickupDistance;
                 MoveToOre();
                 break;
             case PetState.InteractingWithOre:
+                agent.stoppingDistance = pickupDistance;
                 InteractWithOre();
                 break;
             default:
@@ -57,6 +62,7 @@ public class PetAi : MonoBehaviour
     }
     private void FollowPlayer()
     {
+        isNearPlayer = true;
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         if(distanceToPlayer <= followRange )
         {
@@ -77,26 +83,23 @@ public class PetAi : MonoBehaviour
             }
         }
     }
-
-
-
     private void MoveToOre()
     {
-        if(currentOre != null)
+        Lootable lootable = currentOre.GetComponent<Lootable>();
+        //if(currentOre != null && !lootable.isOpen)
+        //{
+        //    int rand = Random.Range(0, oresInRange.Count);
+        //    currentOre = oresInRange[rand];
+        //}
+        if (currentOre != null)
         {
             float distanceToOre = Vector3.Distance(transform.position, currentOre.position);
-            float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
             agent.SetDestination(currentOre.position);
 
-            if(distanceToOre <= orePrioritizationDistance)
+            if (distanceToOre <= orePrioritizationDistance)
             {
                 currentState = PetState.InteractingWithOre;
-            }
-            else if (distanceToPlayer <= oreBreakDistance)
-            {
-                isInteracting = false;
-                currentState = PetState.FollowingPlayer;
             }
         }
         else
@@ -109,41 +112,53 @@ public class PetAi : MonoBehaviour
         if(currentOre != null)
         {
             float distanceToOre = Vector3.Distance(transform.position, currentOre.position);
-            float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+            //float distanceToPlayer = Vector3.Distance(transform.position, player.position);
             if(distanceToOre <= pickupDistance)
             {
                 //Perform damage to ore
                 if(!isInteracting)
                 {
                     StartCoroutine(InteractCooldown());
-
                 }
             }
-            else if(distanceToPlayer <= oreBreakDistance)
-            {
-                isInteracting = false;
-                currentState = PetState.FollowingPlayer;
-            }
+            //else if(distanceToPlayer <= oreBreakDistance)
+            //{
+            //    isInteracting = false;
+            //    currentState = PetState.FollowingPlayer;
+            //}
         }
     }
     private IEnumerator InteractCooldown()
     {
-        isInteracting = true;
-        //Perfom damage
-        currentOre.GetComponent<Lootable>().TakeDamage(pet._power);
+        if(currentOre.GetComponent<Lootable>()._lootHealth <= 0) 
+        {
+            if(currentOre != null)
+            {
+                oresInRange.Remove(currentOre);
+            }
+            isInteracting = false;
+            currentOre = null;
+            currentState = PetState.FollowingPlayer;
+        }
+        else
+        {
+            isInteracting = true;
+            //Perfom damage
+            currentOre.GetComponent<Lootable>().TakeDamage((long)pet._power);
 
-        yield return new WaitForSeconds(interactionCooldown);
+            yield return new WaitForSeconds(interactionCooldown);
 
-        isInteracting = false;
-        currentOre = null;
-        currentState = PetState.FollowingPlayer;
+            isInteracting = false;
+            currentOre = null;
+            currentState = PetState.FollowingPlayer;
+        }
     }
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Lootable"))
         {
-            Lootable ore = other.GetComponent<Lootable>();
+            Transform ore = other.transform;
             if(ore != null)
             {
                 oresInRange.Add(ore);
@@ -155,7 +170,7 @@ public class PetAi : MonoBehaviour
     {
         if (other.CompareTag("Lootable"))
         {
-            Lootable ore = other.GetComponent<Lootable>();
+            Transform ore = other.GetComponent<Transform>();
             if (ore != null)
             {
                 oresInRange.Remove(ore);
@@ -168,14 +183,14 @@ public class PetAi : MonoBehaviour
         if (oresInRange.Count > 0)
         {
             //Prio low health ores
-            Lootable closestOre = null;
+            Transform closestOre = null;
             float minHealth = Mathf.Infinity;
 
-            foreach (Lootable ore in oresInRange)
+            foreach (Transform ore in oresInRange)
             {
-                if (ore._lootHealth < minHealth)
+                if (ore.GetComponent<Lootable>()._lootHealth < minHealth)
                 {
-                    minHealth = ore._lootHealth;
+                    minHealth = ore.GetComponent<Lootable>()._lootHealth;
                     closestOre = ore;
                 }
             }

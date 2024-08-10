@@ -1,12 +1,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using Unity.VisualScripting.Dependencies.Sqlite;
 using UnityEngine;
 
 public class Lootable : MonoBehaviour,IPooledObjects
 {
     public Minable minable;
-    [SerializeField] private float lootHealth;
+    [SerializeField] private long lootHealth;
     [SerializeField] private float lootBonus;
 
     [SerializeField] private float upForce = 1f;
@@ -17,15 +18,14 @@ public class Lootable : MonoBehaviour,IPooledObjects
     [SerializeField] bool randomRotationY = true; // Whether to randomize Y rotation
     [SerializeField] bool randomRotationZ = true; // Whether to randomize Z rotation
 
-    public float _lootHealth { get { return lootHealth; }}
+    [SerializeField] private LootableUI lootableUI;
+    public OreSpawners spawners;
+    public bool isOpen = true;
+    public int petCounter;
+    public List<GameObject> pets = new List<GameObject>();
 
-    private void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.L))
-        {
-            TakeDamage(20);
-        }
-    }
+    public long _lootHealth { get { return lootHealth; }}
+
     private void Start()
     {
         SpawnOre();
@@ -35,15 +35,42 @@ public class Lootable : MonoBehaviour,IPooledObjects
     {
         lootHealth = minable._health;
         lootBonus = minable._bonus;
+        isOpen = true;
+        petCounter = 0;
+        lootableUI.SetupUI(lootHealth);
     }
 
-    public void TakeDamage(float damage)
+    private void Update()
+    {
+        if(lootHealth <= 0)
+        {
+            if(spawners != null)
+            {
+                spawners.spawnedOres -= 1;
+            }
+            gameObject.SetActive(false);
+        }
+
+        if(petCounter >= minable._maxPetForGathering)
+        {
+            isOpen = false;
+        }
+        else if(petCounter <= minable._maxPetForGathering)
+        {
+            isOpen = true;
+        }
+    }
+
+    public void TakeDamage(long damage)
     {
         if (lootHealth <= 0)
         {
             lootHealth = 0;
+            gameObject.SetActive(false);
         }
         spawnResource();
+        lootHealth -= damage;
+        lootableUI.TakeDamage((long)damage);
     }
 
     public void spawnResource()
@@ -75,7 +102,23 @@ public class Lootable : MonoBehaviour,IPooledObjects
 
         // Instantiate the resource
         //res = Instantiate(minable._prefab, spawnPosition, randomRotation);
-        res = ObjectPooler.instance.SpawnFromPool(minable._tag, spawnPosition, randomRotation);
+        int roll = Random.Range(1, 101);
+        res = null;
+        if (roll <= 75) //75% Chance
+        {
+            res = ObjectPooler.instance.SpawnFromPool(minable._lootDropCoinTag, spawnPosition, randomRotation);
+            res.GetComponent<Loot>().value = (long)Random.Range(minable._minGather, minable._maxGather);
+        }
+        else if (roll > 75 && roll <= 95) // 20% chance
+        {
+            res = ObjectPooler.instance.SpawnFromPool(minable._lootDropBagTag, spawnPosition, randomRotation);
+            res.GetComponent<Loot>().value = ((long)Random.Range(minable._minGather, minable._maxGather) * (long)minable._bonus);
+        }
+        else if (roll > 95 && roll <= 100) // 5% chance
+        {
+            res = ObjectPooler.instance.SpawnFromPool(minable._lootDropDiamondTag, spawnPosition, randomRotation);
+            res.GetComponent<Loot>().value = (long)Random.Range(minable._minDiamondDrop, minable._maxDiamondDrop);
+        }
 
         // Apply force to the spawned object
         float xForce = Random.Range(-sideForce, sideForce);
@@ -85,11 +128,10 @@ public class Lootable : MonoBehaviour,IPooledObjects
         res.GetComponent<Rigidbody>().velocity = force;
 
         // Set the value of the loot
-        res.GetComponent<Loot>().value = (long)Random.Range(minable._minGather, minable._maxGather);
     }
 
     public void OnObjectSpawn()
     {
-        spawnResource();
+        SpawnOre();
     }
 }

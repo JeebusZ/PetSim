@@ -56,11 +56,8 @@ public class Loot : MonoBehaviour, IPooledObjects
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (collision.transform.CompareTag("Ground"))
-        {
-            StartCoroutine(FloatAboveGround());
-            GetComponent<Collider>().isTrigger = true;
-        }
+        StartCoroutine(FloatAboveGround());
+        GetComponent<Collider>().isTrigger = true;
     }
 
     private IEnumerator FloatAboveGround()

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _name: PUG
   _color: {r: 0.5754717, g: 0.5754717, b: 0.5754717, a: 0}
-  _power: 10
+  _power: 7
   _attackSpeed: 2
   _upgradeCost: 100
   _tier: 0

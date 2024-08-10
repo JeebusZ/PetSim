@@ -14,6 +14,7 @@ public class ObjectPooler : MonoBehaviour
 
     public List<Pool> pools;
     public Dictionary<string, Queue<GameObject>> poolDictionary;
+    public bool loaded;
 
     #region Singleton
     public static ObjectPooler instance;
@@ -43,6 +44,10 @@ public class ObjectPooler : MonoBehaviour
                 GameObject obj = Instantiate(pool.prefab);
                 obj.SetActive(false);
                 objectPool.Enqueue(obj);
+                if(i < pool.size - 1)
+                {
+                    loaded = true;
+                }
             }
 
             poolDictionary.Add(pool.tag, objectPool);

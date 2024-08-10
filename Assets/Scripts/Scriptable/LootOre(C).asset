@@ -13,9 +13,14 @@ MonoBehaviour:
   m_Name: LootOre(C)
   m_EditorClassIdentifier: 
   _name: LootOre(C)
-  _tag: LootOre(C)
-  _health: 100
-  _bonus: 0
-  _minGather: 200
-  _maxGather: 950
-  _prefab: {fileID: 8622600779506386672, guid: 9bfcd0812d428c946990f37de81fdaa7, type: 3}
+  _oreTag: LootOre(C)
+  _lootDropCoinTag: Loot_Coin
+  _lootDropBagTag: Loot_CashCase
+  _lootDropDiamondTag: Loot_Diamond
+  _health: 20
+  _bonus: 50
+  _minGather: 1
+  _maxGather: 10
+  _minDiamondDrop: 1
+  _maxDiamondDrop: 5
+  _maxPetForGathering: 2
