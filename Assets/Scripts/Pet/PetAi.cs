@@ -28,8 +28,7 @@ public class PetAi : MonoBehaviour
     [SerializeField] private Transform currentOre;
     [SerializeField] private List<Transform> oresInRange = new List<Transform>();
     private bool isInteracting = false;
-    private bool isNearPlayer = true;
-
+    private Animator anim;
     public Pet _pet { get { return pet; } set { pet = value; } }
     public List<Transform> ores { get {  return oresInRange; } set { oresInRange = value; } }
     
@@ -38,6 +37,7 @@ public class PetAi : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         currentState = PetState.FollowingPlayer;
         interactionCooldown = pet._attackSpeed;
+        anim = GetComponent<Animator>();
     }
 
     private void Update()
@@ -62,7 +62,6 @@ public class PetAi : MonoBehaviour
     }
     private void FollowPlayer()
     {
-        isNearPlayer = true;
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         if(distanceToPlayer <= followRange )
         {
@@ -119,6 +118,7 @@ public class PetAi : MonoBehaviour
                 if(!isInteracting)
                 {
                     StartCoroutine(InteractCooldown());
+                    anim.SetTrigger("Attack");
                 }
             }
             //else if(distanceToPlayer <= oreBreakDistance)
